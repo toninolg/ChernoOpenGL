@@ -4,28 +4,11 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <signal.h>
 
-#define ASSERT(x) if (!(x)) raise(SIGTRAP);
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
-
-
-static void GLClearError()
-{
-   while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line)
-{
-    while (GLenum error = glGetError())
-    {
-        std::cout << "[OpenGL Error] (" << error << "): " << function << "" << file << ":" << line <<  std::endl;
-        return false;
-    }
-    return true;
-}
+#include "renderer.h"
+#include "vertexbuffer.h"
+#include "indexbuffer.h"
+#include "vertexarray.h"
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -140,7 +123,7 @@ int main(void)
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Cherno OpenGL", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -159,8 +142,12 @@ int main(void)
         return -1;
     }
 
-//    glEnable(GL_DEBUG_OUTPUT);
-//    glDebugMessageCallback(DebugMessageCallBack, nullptr);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(DebugMessageCallBack, nullptr);
 
     // Print versions
     fprintf(stdout, "Status: Using OpenGL %s\n", glGetString(GL_VERSION)); fflush(stdout);
@@ -179,31 +166,15 @@ int main(void)
         2, 3, 0
     };
 
-    // Define vertex buffer
-    GLuint buffer;
-    GLCall(glGenBuffers(1, &buffer));
+    VertexArray va;
 
-    // Select/bind buffer
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+    VertexBuffer vb(positions, 4 * 2 * sizeof(float));
 
-    // Specify the data
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 6* 2 * sizeof(float), positions, GL_STATIC_DRAW));
+    VertexBufferLayout layout;
+    layout.pushFloat(2);
+    va.addBuffer(vb, layout);
 
-    // Define vertex buffer
-    GLuint ibo; // index buffer object
-    GLCall(glGenBuffers(1, &ibo));
-
-    // Select/bind buffer
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-
-    // Specify the data
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));
-
-    // Enable or disable a generic vertex attribute array
-    GLCall(glEnableVertexAttribArray(0));
-
-    // Define an array of generic vertex attribute data
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+    IndexBuffer ib (indices, 6);
 
     // Create shaders
     ShaderProgramSource source = ParseShader("../ChernoOpenGL/assets/shaders/Basic.shader");
@@ -213,14 +184,42 @@ int main(void)
     // Bind our shader
     GLCall(glUseProgram(shader));
 
+    GLCall(int location = glGetUniformLocation(shader, "u_color"));
+    ASSERT(location != -1);
+    GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
+
+    va.unbind();
+    GLCall(glUseProgram(0));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+    float r = 0.0f;
+    float increment = 0.05f;
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
+        GLCall(glUseProgram(shader));
+        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+        va.bind();
+        ib.bind();
+
         // Issue a draw call on the buffer that is bound
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+        GLCall(glEnableVertexAttribArray(0));
+
+        if (r > 1.0f){
+            increment = -0.05f;
+        }
+        else if (r < 0.0f){
+            increment = 0.05f;
+        }
+        r += increment;
 
         /* Swap front and back buffers */
         GLCall(glfwSwapBuffers(window));
@@ -234,5 +233,4 @@ int main(void)
     glfwTerminate();
 
     return 0;
-
 }
