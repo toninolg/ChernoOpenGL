@@ -17,6 +17,8 @@ public:
 
     void bind() const;
     void unbind() const;
+
+    inline unsigned int getCount() const { return m_count; }
 };
 
 #endif // INDEXBUFFER_H
