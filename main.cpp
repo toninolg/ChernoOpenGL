@@ -11,6 +11,7 @@
 #include "indexbuffer.h"
 #include "vertexarray.h"
 #include "shader.h"
+#include "texture.h"
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -60,10 +61,10 @@ int main(void)
 
     // Triangle vertex positions
     float positions [] = {
-        -0.5f, -0.5f, // 0
-         0.5f, -0.5f, // 1
-         0.5f,  0.5f, // 2
-        -0.5f,  0.5f  // 3
+        -0.5f, -0.5f, 0.0f, 0.0f, // 0
+         0.5f, -0.5f, 1.0f, 0.0f, // 1
+         0.5f,  0.5f, 1.0f, 1.0f, // 2
+        -0.5f,  0.5f, 0.0f, 1.0f  // 3
     };
 
     unsigned int indices[] = {
@@ -71,11 +72,15 @@ int main(void)
         2, 3, 0
     };
 
+    GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA))
+
     VertexArray va;
 
-    VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+    VertexBuffer vb(positions, 4 * 4 * sizeof(float));
 
     VertexBufferLayout layout;
+    layout.pushFloat(2);
     layout.pushFloat(2);
     va.addBuffer(vb, layout);
 
@@ -85,6 +90,10 @@ int main(void)
     Shader shader("../ChernoOpenGL/assets/shaders/Basic.shader");
     shader.bind();
     shader.setUniform4f("u_color", 0.8f, 0.3f, 0.8f, 1.0f);
+
+    Texture texture("../ChernoOpenGL/assets/textures/cherno.png");
+    texture.bind();
+    shader.setUniform1i("u_texture", 0);
 
     va.unbind();
     vb.unbind();
