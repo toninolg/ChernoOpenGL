@@ -9,109 +9,13 @@
 #include "vertexbuffer.h"
 #include "indexbuffer.h"
 #include "vertexarray.h"
+#include "shader.h"
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
     fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
                ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
                 type, severity, message );
-}
-
-struct ShaderProgramSource
-{
-    std::string vertexSource;
-    std::string fragmentSource;
-};
-
-static ShaderProgramSource ParseShader(const std::string& filepath)
-{
-    std::ifstream stream(filepath);
-
-    enum ShaderType
-    {
-        NONE = -1, VERTEX = 0, FRAGMENT = 1
-    };
-
-    std::string line;
-    std::stringstream ss[2];
-    ShaderType type = ShaderType::NONE;
-
-    while (getline(stream, line))
-    {
-        if (line.find("#shader") != std::string::npos)
-        {
-            if (line.find("vertex") != std::string::npos)
-                type = ShaderType::VERTEX;
-            else if (line.find("fragment") != std::string::npos)
-                type = ShaderType::FRAGMENT;
-        }
-        else {
-            if (type != -1){
-                ss[type] << line << "\n";
-            }
-        }
-    }
-
-    // DEBUG
-//    std::cout << "VERTEX" << std::endl;
-//    std::cout << ss[0].str() << std::endl;
-//    std::cout << "FRAGMENT" << std::endl;
-//    std::cout << ss[1].str()<< std::endl;
-
-    return {ss[0].str(), ss[1].str()};
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string& source)
-{
-    GLCall(unsigned int id = glCreateShader(type));
-    const char* src = source.c_str();
-    GLCall(glShaderSource(id, 1, &src, nullptr));
-    GLCall(glCompileShader(id));
-
-    // Query if something went wrong
-    int result;
-    GLCall(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
-    if (result == GL_FALSE){
-        int length;
-        GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
-
-        char* message = (char*)alloca(length * sizeof (char));
-        GLCall(glGetShaderInfoLog(id, length, &length, message));
-
-        std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader" << std::endl;
-        std::cout << message << std::endl;
-
-        GLCall(glDeleteShader(id));
-        return 0;
-    }
-
-    return id;
-}
-
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
-{
-    GLCall(unsigned int program = glCreateProgram());
-
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-    // Attach both shaders to the program
-    GLCall(glAttachShader(program, vs));
-    GLCall(glAttachShader(program, fs));
-
-    /* Links the program object specified by program. If any shader objects of type GL_VERTEX_SHADER are attached to program,
-     * they will be used to create an executable that will run on the programmable vertex processor
-     */
-    GLCall(glLinkProgram(program));
-
-    // Checks to see whether the executables contained in program can execute given the current OpenGL state.
-    GLCall(glValidateProgram(program));
-
-    // Delete the intermediates
-    GLCall(glDeleteShader(vs));
-    GLCall(glDeleteShader(fs));
-
-    return program;
 }
 
 int main(void)
@@ -177,21 +81,14 @@ int main(void)
     IndexBuffer ib (indices, 6);
 
     // Create shaders
-    ShaderProgramSource source = ParseShader("../ChernoOpenGL/assets/shaders/Basic.shader");
-
-    GLCall(unsigned int shader = CreateShader(source.vertexSource, source.fragmentSource));
-
-    // Bind our shader
-    GLCall(glUseProgram(shader));
-
-    GLCall(int location = glGetUniformLocation(shader, "u_color"));
-    ASSERT(location != -1);
-    GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
+    Shader shader("../ChernoOpenGL/assets/shaders/Basic.shader");
+    shader.bind();
+    shader.setUniform4f("u_color", 0.8f, 0.3f, 0.8f, 1.0f);
 
     va.unbind();
-    GLCall(glUseProgram(0));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+    vb.unbind();
+    ib.unbind();
+    shader.unbind();
 
     float r = 0.0f;
     float increment = 0.05f;
@@ -202,16 +99,14 @@ int main(void)
         /* Render here */
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        GLCall(glUseProgram(shader));
-        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+        shader.bind();
+        shader.setUniform4f("u_color", r, 0.3f, 0.8f, 1.0f);
 
         va.bind();
         ib.bind();
 
         // Issue a draw call on the buffer that is bound
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
-
-        GLCall(glEnableVertexAttribArray(0));
 
         if (r > 1.0f){
             increment = -0.05f;
@@ -227,8 +122,6 @@ int main(void)
         /* Poll for and process events */
         glfwPollEvents();
     }
-
-    GLCall(glDeleteProgram(shader));
 
     glfwTerminate();
 

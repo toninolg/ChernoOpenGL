@@ -18,6 +18,7 @@ add_executable(ChernoOpenGL
   indexbuffer.h indexbuffer.cpp
   vertexarray.h vertexarray.cpp
   vertexbufferlayout.h
+  shader.h shader.cpp
 )
 
 # GLFW, OpenGL, GLEW,
