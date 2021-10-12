@@ -1,5 +1,7 @@
 #include <GL/glew.h> // Before including GLFW
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -12,6 +14,7 @@
 #include "vertexarray.h"
 #include "shader.h"
 #include "texture.h"
+
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -86,6 +89,8 @@ int main(void)
 
     IndexBuffer ib (indices, 6);
 
+    glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+
     // Create shaders
     Shader shader("../ChernoOpenGL/assets/shaders/Basic.shader");
     shader.bind();
@@ -94,6 +99,7 @@ int main(void)
     Texture texture("../ChernoOpenGL/assets/textures/cherno.png");
     texture.bind();
     shader.setUniform1i("u_texture", 0);
+    shader.setUniformMat4f("u_MVP", proj);
 
     va.unbind();
     vb.unbind();
