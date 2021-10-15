@@ -4,32 +4,33 @@ project(ChernoOpenGL)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+file(GLOB ROOT_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB STB_IMAGE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.cpp")
+file(GLOB IMGUI_IMAGE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp")
+
+message(STATUS ${IMGUI_IMAGE_FILES})
+
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui
+)
+
 add_executable(ChernoOpenGL
-  main.cpp
-  renderer.h renderer.cpp
-  vertexbuffer.h vertexbuffer.cpp
-  indexbuffer.h indexbuffer.cpp
-  vertexarray.h vertexarray.cpp
-  vertexbufferlayout.h
-  shader.h shader.cpp
-  texture.h texture.cpp
-  vendor/stb_image/stb_image.h vendor/stb_image/stb_image.cpp
+  ${ROOT_FILES}
+  ${STB_IMAGE_FILES}
+  ${IMGUI_IMAGE_FILES}
 )
 
 # GLFW, OpenGL, GLEW, GLM
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
-target_link_libraries(ChernoOpenGL glfw OpenGL::GL GLEW::GLEW)
+target_link_libraries(ChernoOpenGL glfw OpenGL::GL GLEW::GLEW  ${CMAKE_DL_LIBS})
 
 # GLM
 find_package(GLM REQUIRED)
