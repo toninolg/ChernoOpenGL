@@ -20,6 +20,7 @@
 #include "imgui_impl_opengl3.h"
 
 #include "testclearcolor.h"
+#include "testtexture2d.h"
 
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
@@ -86,6 +87,7 @@ int main(void)
     currentTest = testMenu;
 
     testMenu->registerTest<test::TestClearColor>("Clear Color");
+    testMenu->registerTest<test::TestTexture2D>("2D Texture");
 
     while (!glfwWindowShouldClose(window))
     {
