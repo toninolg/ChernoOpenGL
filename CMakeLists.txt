@@ -12,18 +12,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 file(GLOB ROOT_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB STB_IMAGE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image/*.cpp")
 file(GLOB IMGUI_IMAGE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp")
+file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 
 message(STATUS ${IMGUI_IMAGE_FILES})
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
 )
 
 add_executable(ChernoOpenGL
   ${ROOT_FILES}
   ${STB_IMAGE_FILES}
   ${IMGUI_IMAGE_FILES}
+  ${TEST_FILES}
 )
 
 # GLFW, OpenGL, GLEW, GLM

@@ -19,6 +19,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "testclearcolor.h"
+
 
 static void DebugMessageCallBack(GLenum source, GLenum type, GLenum id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -67,121 +69,65 @@ int main(void)
     fprintf(stdout, "Status: Using OpenGL %s\n", glGetString(GL_VERSION)); fflush(stdout);
     fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION)); fflush(stdout);
 
-    // Triangle vertex positions
-    float positions [] = {
-        -50.0f, -50.0f, 0.0f, 0.0f, // 0
-         50.0f, -50.0f, 1.0f, 0.0f, // 1
-         50.0f,  50.0f, 1.0f, 1.0f, // 2
-        -50.0f,  50.0f, 0.0f, 1.0f  // 3
-    };
-
-    unsigned int indices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
     GLCall(glEnable(GL_BLEND));
     GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA))
 
-    VertexArray va;
-
-    VertexBuffer vb(positions, 4 * 4 * sizeof(float));
-
-    VertexBufferLayout layout;
-    layout.pushFloat(2);
-    layout.pushFloat(2);
-    va.addBuffer(vb, layout);
-
-    IndexBuffer ib (indices, 6);
-
-    glm::mat4 proj  = glm::ortho(0.0f, 960.0f, 0.0f, 540.0f, -1.0f, 1.0f);
-    glm::mat4 view  = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0 , 0));
-
-    // Create shaders
-    Shader shader("../ChernoOpenGL/assets/shaders/Basic.shader");
-    shader.bind();
-
-    Texture texture("../ChernoOpenGL/assets/textures/cherno.png");
-    texture.bind();
-    shader.setUniform1i("u_texture", 0);;
-
-    va.unbind();
-    vb.unbind();
-    ib.unbind();
-    shader.unbind();
-
     Renderer renderer;
 
-    // ********** ImGui **************************
+    // *******************************************
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
     ImGui::StyleColorsDark();
     // *******************************************
 
+    test::Test* currentTest = nullptr;
+    test::TestMenu* testMenu = new test::TestMenu(currentTest);
+    currentTest = testMenu;
 
-    glm::vec3 translationA(200.0f, 200.0f , 0.0f);
-    glm::vec3 translationB(400.0f, 200.0f , 0.0f);
+    testMenu->registerTest<test::TestClearColor>("Clear Color");
 
-    float r = 0.0f;
-    float increment = 0.05f;
-
-    /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         renderer.clear();
 
-        // **********Start the Dear ImGui frame ********************************************************************************************
+        // *****************************
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        // *********************************************************************************************************************************
 
-        shader.bind();
-
+        if (currentTest)
         {
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), translationA);
-            glm::mat4 mvp  = proj * view * model;
-            shader.setUniformMat4f("u_MVP", mvp);
-            renderer.draw(va, ib, shader);
+            currentTest->onUpdate(0.0f);
+            currentTest->onRender();
+            ImGui::Begin("Test");
+            if (currentTest != testMenu && ImGui::Button("<-"))
+            {
+                delete currentTest;
+                currentTest = testMenu;
+            }
+            currentTest->onImGuiRender();
+            ImGui::End();
         }
 
-        {
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), translationB);
-            glm::mat4 mvp  = proj * view * model;
-            shader.setUniformMat4f("u_MVP", mvp);
-            renderer.draw(va, ib, shader);
-        }
-
-        if (r > 1.0f)
-            increment = -0.05f;
-        else if (r < 0.0f)
-            increment = 0.05f;
-
-        r += increment;
-
-        // ********** ImGui Render ******************
-        {
-            ImGui::SliderFloat3("Translation A", &translationA.x, 0.0f, 960.0f);
-            ImGui::SliderFloat3("Translation B", &translationB.x, 0.0f, 960.0f);
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        }
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        // ******************************************
+        // *******************************************************
 
-        /* Swap front and back buffers */
         GLCall(glfwSwapBuffers(window));
-
-        /* Poll for and process events */
         glfwPollEvents();
     }
 
-    // ********** ImGui CleanUp ******************
+    delete currentTest;
+    if (currentTest != testMenu){
+        delete testMenu;
+    }
+
+    // ********************************
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-    // *******************************************
+    // ********************************
 
     glfwDestroyWindow(window);
     glfwTerminate();
